@@ -39,8 +39,14 @@ data class Course(
 data class ApiResponse(val message: String)
 
 @Serializable
+data class CourseSearchInnerData(
+    val courses: List<CourseDto>,
+    val count: Int
+)
+
+@Serializable
 data class SearchCourseResponse(
-    val data: Map<String, @Contextual JsonElement>
+    val data: CourseSearchInnerData
 )
 
 @Serializable

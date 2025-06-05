@@ -91,24 +91,7 @@ object ApiService {
             parameter("page_size", pageSize)
         }.body()
 
-        val json = Json { ignoreUnknownKeys = true }
-        var totalPages = 1
-
-        val courseList = response.data.mapNotNull { (key, value) ->
-            if (key == "total_pages") {
-                totalPages = value.jsonPrimitive.int
-                null
-            } else {
-                try {
-                    json.decodeFromJsonElement<CourseDto>(value)
-                } catch (e: Exception) {
-                    println("❌ Skipping invalid course at key=$key: ${e.message}")
-                    null
-                }
-            }
-        }
-
-        return courseList to totalPages
+        return response.data.courses to response.data.count
     }
 
     suspend fun getSectionDetails(courseId: String, sectionId: String): SectionResponse {
