@@ -50,7 +50,7 @@ fun VideoUploadScreen(authToken: String) {
                             println("✅ Uploaded to: $resultUrl")
                         } catch (e: Exception) {
                             println("❌ Upload failed: ${e.message}")
-                            e.printStackTrace() // Logs full exception trace
+                            e.printStackTrace()
                         } finally {
                             isUploading = false
                             println("🛑 Upload finished")

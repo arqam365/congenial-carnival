@@ -1,96 +1,88 @@
 package com.nextlevelprogrammers.elearn
 
+import io.ktor.client.*
+import io.ktor.client.call.*
+import io.ktor.client.plugins.contentnegotiation.*
+import io.ktor.client.request.*
+import io.ktor.client.statement.*
+import io.ktor.http.*
+import io.ktor.serialization.kotlinx.json.*
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import java.io.File
-import java.net.HttpURLConnection
-import java.net.URL
-import javax.net.ssl.HttpsURLConnection
+import org.json.JSONObject
 
 object GCSUploader {
-    private const val BUCKET_NAME = "orchid-prod-data"
-    private const val MIME_TYPE = "video/mp4"
+    private const val BASE_URL = "https://production-begonia-orchid-977741295366.asia-south1.run.app/v1"
 
-    /**
-     * Public entry function to upload a large video file using resumable upload
-     */
+    private val client = HttpClient {
+        install(ContentNegotiation) {
+            json(Json { ignoreUnknownKeys = true })
+        }
+    }
+
+    @Serializable
+    data class SignedUrlResponse(val url: String)
+
     suspend fun testVideoUpload(file: File): String {
-        val objectPath = "videos/${file.name}"
-        println("📁 Starting resumable upload for file: ${file.absolutePath}")
+        val fileName = file.name
+        val filePath = "videos/uploads"
+        val mimeType = "video/mp4"
 
-//        val accessToken = getAccessToken()
-        val sessionUrl = startResumableSession(BUCKET_NAME, objectPath)
+        val signedUrl = getSignedUploadUrl(fileName, filePath, mimeType)
+        val success = uploadFileToSignedUrl(file, signedUrl, contentType = mimeType)
 
-        println("🔄 Upload in progress to session: $sessionUrl")
-        uploadFileToSession(sessionUrl, file)
-
-        val publicUrl = "https://storage.googleapis.com/$BUCKET_NAME/$objectPath"
-        println("✅ Upload complete. File available at: $publicUrl")
-        return publicUrl
+        if (!success) throw Exception("Upload failed")
+        return "https://storage.googleapis.com/orchid-prod-data/$filePath/$fileName"
     }
 
-    /**
-     * Starts a resumable upload session and returns the session URL
-     */
-    private fun startResumableSession(bucketName: String, objectPath: String): String {
-        val uploadUrl = "https://storage.googleapis.com/upload/storage/v1/b/$bucketName/o?uploadType=resumable"
-        val connection = URL(uploadUrl).openConnection() as HttpsURLConnection
+    private suspend fun getSignedUploadUrl(fileName: String, filePath: String, fileMimeType: String): String {
+        val token = getAccessToken()
 
-        connection.requestMethod = "POST"
-        connection.setRequestProperty("Authorization", "Bearer ${getAccessToken()}")
-        connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
-        connection.setRequestProperty("X-Upload-Content-Type", "video/mp4")
-        connection.doOutput = true
-
-        val body = """
-        {
-          "name": "$objectPath"
+        val response: HttpResponse = client.get("$BASE_URL/gcloud_storage") {
+            parameter("file_name", fileName)
+            parameter("file_path", filePath)
+            parameter("file_mime_type", "video/mp4") // ✅ Add this line dynamically based on file
+            header(HttpHeaders.Authorization, "Bearer $token")
         }
-    """.trimIndent()
 
-        connection.outputStream.use { it.write(body.toByteArray()) }
+        val rawBody = response.bodyAsText().trim()
+        val contentType = response.headers[HttpHeaders.ContentType] ?: "unknown"
 
-        val responseCode = connection.responseCode
-        return if (responseCode in 200..299) {
-            connection.getHeaderField("Location") ?: throw RuntimeException("❌ Missing resumable URL")
-        } else {
-            val error = connection.errorStream?.bufferedReader()?.readText()
-            throw RuntimeException("❌ Failed to start resumable session. Code: $responseCode\n$error")
+        // If response is a raw URL string, just return it
+        if (rawBody.startsWith("http")) {
+            return rawBody
         }
-    }
 
-    /**
-     * Uploads the file content to the provided resumable session URL
-     */
-    private fun uploadFileToSession(sessionUrl: String, file: File) {
-        val connection = URL(sessionUrl).openConnection() as HttpURLConnection
-
-        connection.requestMethod = "PUT"
-        connection.doOutput = true
-        connection.setRequestProperty("Content-Length", file.length().toString())
-        connection.setRequestProperty("Content-Type", MIME_TYPE)
-
-        try {
-            file.inputStream().use { input ->
-                connection.outputStream.use { output ->
-                    input.copyTo(output)
-                }
-            }
+        return try {
+            val json = JSONObject(rawBody)
+            json.getString("url")
         } catch (e: Exception) {
-            val errorText = connection.errorStream?.bufferedReader()?.readText()
-            throw RuntimeException("❌ Error during upload: ${e.localizedMessage}\nServer says: $errorText")
-        }
-
-        val responseCode = connection.responseCode
-        if (responseCode !in 200..299) {
-            val errorText = connection.errorStream?.bufferedReader()?.readText()
-            throw RuntimeException("❌ Upload failed. Code: $responseCode\n$errorText")
+            throw IllegalStateException("Invalid response. Content-Type: $contentType\nResponse: $rawBody", e)
         }
     }
 
-    /**
-     * Replace this with a secure token generation method
-     */
+    private suspend fun uploadFileToSignedUrl(file: File, signedUrl: String, contentType: String): Boolean {
+        val uploadClient = HttpClient()
+        try {
+            val response: HttpResponse = uploadClient.put(signedUrl) {
+                header(HttpHeaders.ContentType, contentType)
+                header("x-goog-resumable", "start")
+                setBody(file.readBytes())
+            }
+
+            println("Upload Status: ${response.status}")
+            println("Upload Response: ${response.bodyAsText()}")
+
+            return response.status.value in 200..299
+        } catch (e: Exception) {
+            println("Upload exception: ${e.message}")
+            return false
+        }
+    }
+
     private fun getAccessToken(): String {
-        // 🔐 This is your current manually generated token (keep secret!)
-        return "ya29.a0AW4Xtxju388cVShqr5r-37BLy-7kRAMWtiQPmUfQliTcCPHZ04ko_b6qFnZJqIIXb0uWgYnQntlTqcMFhIftM0SN4wyqBxWIuWOsyMUyWNtWOnMkH8Y796iRKUcZ94GKhV94RZC5DJPdrtzlspc1k7wJXoo7Ta4r-C3DiETSfHUksHIaCgYKAT4SARQSFQHGX2Mijf8jqTwCPI07vdHHBao_wQ0182"
+        return TokenStorage.getToken()
+            ?: throw IllegalStateException("No access token found. Please sign in first.")
     }
 }

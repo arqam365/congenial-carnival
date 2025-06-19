@@ -60,6 +60,10 @@ kotlin {
             implementation("io.github.sunildhiman90:kmauth-google:0.0.4")
             implementation("io.github.sunildhiman90:kmauth-google-compose:0.0.4")
             implementation("com.google.auth:google-auth-library-oauth2-http:1.21.0")
+            implementation("com.google.auth:google-auth-library-oauth2-http:1.19.0")
+            implementation("com.squareup.okhttp3:okhttp:4.12.0")
+            implementation("com.google.code.gson:gson:2.10.1")
+            implementation("org.json:json:20231013")
         }
     }
 }

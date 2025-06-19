@@ -117,5 +117,22 @@ object ApiService {
         }.body<SecResponse<CourseDto>>().data
     }
 
+    suspend fun getSignedUploadUrl(
+        fileName: String,
+        filePath: String,
+        fileMimeType: String
+    ): String {
+        val response: Map<String, String> = client.get("$BASE_URL/gcloud_storage") {
+            url {
+                parameters.append("file_name", fileName)
+                parameters.append("file_path", filePath)
+                parameters.append("file_mime_type", fileMimeType)
+            }
+        }.body()
+
+        return response["url"]
+            ?: throw IllegalStateException("❌ Signed URL not found in response")
+    }
+
     // Add more API functions as needed...
 }

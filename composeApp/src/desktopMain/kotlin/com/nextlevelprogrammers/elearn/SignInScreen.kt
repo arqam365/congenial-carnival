@@ -7,6 +7,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.sunildhiman90.kmauth.google.compose.GoogleSignInButton
+import org.apache.commons.logging.Log
 
 @Composable
 fun SignInScreen(onSignedIn: (String) -> Unit) {
@@ -26,7 +27,10 @@ fun SignInScreen(onSignedIn: (String) -> Unit) {
                 errorMessage = error.message
             }
             if (user != null) {
+                val s= user.accessToken
+                println(" id= ${user.toString()}")
                 println("✅ Google sign-in successful: ${user.email}")
+                println("✅ Google sign-in successful: $s")
                 user.idToken?.let {
                     TokenStorage.saveToken(it)
                     onSignedIn(it)

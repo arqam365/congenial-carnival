@@ -13,11 +13,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.darkrockstudios.libraries.mpfilepicker.FilePicker
 import com.kizitonwose.calendar.compose.VerticalCalendar
 import com.kizitonwose.calendar.compose.rememberCalendarState
 import com.kizitonwose.calendar.core.yearMonth
 import kotlinx.coroutines.launch
 import kotlinx.datetime.*
+import java.io.File
 
 @Composable
 fun SectionScreen(courseId: String, onBack: () -> Unit) {
@@ -27,6 +29,8 @@ fun SectionScreen(courseId: String, onBack: () -> Unit) {
     var sectionDetailsMap by remember { mutableStateOf<Map<String, SectionResponse>>(emptyMap()) }
     var course by remember { mutableStateOf<CourseDto?>(null) }
     var sections by remember { mutableStateOf<List<Section>>(emptyList()) }
+    var showAddContentDialog by remember { mutableStateOf(false) }
+    var selectedSectionIdForContent by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(courseId) {
         println("📦 Fetching course details for ID: $courseId")
@@ -137,6 +141,8 @@ fun SectionScreen(courseId: String, onBack: () -> Unit) {
                                 onClick = {
                                     println("➕ Add Content for Section: ${section.section_id}")
                                     // TODO: Open add content dialog or screen
+                                    selectedSectionIdForContent = section.section_id
+                                    showAddContentDialog = true
                                 },
                                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB))
                             ) {
@@ -160,6 +166,22 @@ fun SectionScreen(courseId: String, onBack: () -> Unit) {
                             println("✅ Sections updated: ${sections.map { it.section_name }}")
                         } catch (e: Exception) {
                             println("❌ Failed to refresh sections: ${e.localizedMessage}")
+                        }
+                    }
+                )
+            }
+
+            if (showAddContentDialog && selectedSectionIdForContent != null) {
+                AddContentDialog(
+                    sectionId = selectedSectionIdForContent!!,
+                    onClose = { showAddContentDialog = false },
+                    onSuccess = {
+                        println("🔄 Refreshing section content after content added...")
+                        try {
+                            val updated = ApiService.getSectionDetails(course!!.course_id, selectedSectionIdForContent!!)
+                            sectionDetailsMap = sectionDetailsMap + (selectedSectionIdForContent!! to updated)
+                        } catch (e: Exception) {
+                            println("❌ Failed to refresh section content: ${e.localizedMessage}")
                         }
                     }
                 )
@@ -188,6 +210,197 @@ fun SectionScreen(courseId: String, onBack: () -> Unit) {
                     Box(Modifier.fillMaxWidth().height(300.dp)) {
                         CustomCalendarView(selectedDate) { selectedDate = it }
                     }
+                }
+            }
+        }
+    }
+}
+
+
+@Composable
+fun AddContentDialog(sectionId: String, onClose: () -> Unit, onSuccess: suspend () -> Unit) {
+    val contentTypes = listOf("video", "pdf", "live_video")
+    var selectedContentType by remember { mutableStateOf(contentTypes[0]) }
+    var expanded by remember { mutableStateOf(false) }
+    var contentName by remember { mutableStateOf("") }
+    var contentDescription by remember { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    var liveUrl by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onClose,
+        title = { Text("Add New Content") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text("Content Type", fontWeight = FontWeight.Medium)
+                Box(Modifier.fillMaxWidth()) {
+                    ContentTypeDropdown(
+                        selectedContentType = selectedContentType,
+                        onContentTypeSelected = { selectedContentType = it }
+                    )
+                }
+                OutlinedTextField(
+                    value = contentName,
+                    onValueChange = { contentName = it },
+                    label = { Text("Content Name") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = contentDescription,
+                    onValueChange = { contentDescription = it },
+                    label = { Text("Content Description") },
+                    modifier = Modifier.fillMaxWidth().height(100.dp)
+                )
+
+                if (selectedContentType == "video") {
+                    Text("SD Video")
+                    FilePickerFieldWithUpload(
+                        label = "Choose SD File",
+                        onUploadComplete = { url -> println("🔗 SD Video URL: $url") }
+                    )
+
+                    Text("HD Video")
+                    FilePickerFieldWithUpload(
+                        label = "Choose HD File",
+                        onUploadComplete = { url -> println("🔗 HD Video URL: $url") }
+                    )
+
+                    Text("Full HD Video")
+                    FilePickerFieldWithUpload(
+                        label = "Choose Full HD File",
+                        onUploadComplete = { url -> println("🔗 Full HD Video URL: $url") }
+                    )
+                } else if (selectedContentType == "pdf") {
+                    Text("Upload PDF")
+//                    FilePickerField(label = "Choose File")
+                } else if (selectedContentType == "live_video") {
+                    OutlinedTextField(
+                        value = liveUrl,
+                        onValueChange = { liveUrl = it },
+                        label = { Text("Live Stream URL") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = {
+                scope.launch {
+                    // API call to add content can go here
+                    onSuccess()
+                    onClose()
+                }
+            }) {
+                Text("Add Content")
+            }
+        },
+        dismissButton = {
+            Button(onClick = onClose) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ContentTypeDropdown(
+    selectedContentType: String,
+    onContentTypeSelected: (String) -> Unit
+) {
+    val contentTypes = listOf("video", "pdf", "live_video")
+    var expanded by remember { mutableStateOf(false) }
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = !expanded },
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        OutlinedTextField(
+            value = selectedContentType,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text("Content Type") },
+            trailingIcon = {
+                ExposedDropdownMenuDefaults.TrailingIcon(expanded)
+            },
+            modifier = Modifier
+                .menuAnchor()
+                .fillMaxWidth()
+        )
+
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            contentTypes.forEach { type ->
+                DropdownMenuItem(
+                    text = { Text(type.replace("_", " ").replaceFirstChar { it.uppercase() }) },
+                    onClick = {
+                        onContentTypeSelected(type)
+                        expanded = false
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun FilePickerFieldWithUpload(
+    label: String,
+    allowedExtensions: List<String> = listOf("mp4", "mov", "avi", "mkv", "pdf"),
+    onUploadComplete: (String) -> Unit
+) {
+    var showFilePicker by remember { mutableStateOf(false) }
+    var selectedFile by remember { mutableStateOf<File?>(null) }
+    var isUploading by remember { mutableStateOf(false) }
+    var uploadedUrl by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+
+    Column {
+        Box(modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = !isUploading) { showFilePicker = true }) {
+            OutlinedTextField(
+                value = selectedFile?.name ?: "",
+                onValueChange = {},
+                label = { Text(label) },
+                readOnly = true,
+                enabled = false, // prevents manual editing
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+
+        if (isUploading) {
+            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+        }
+
+        uploadedUrl?.let {
+            Text("✅ Uploaded: ${File(it).name}", style = MaterialTheme.typography.bodySmall)
+        }
+    }
+
+    FilePicker(
+        show = showFilePicker,
+        fileExtensions = allowedExtensions
+    ) { platformFile ->
+        showFilePicker = false
+        platformFile?.path?.let { path ->
+            val file = File(path)
+            selectedFile = file
+            isUploading = true
+            scope.launch {
+                try {
+                    val resultUrl = GCSUploader.testVideoUpload(file)
+                    uploadedUrl = resultUrl
+                    onUploadComplete(resultUrl)
+                } catch (e: Exception) {
+                    println("❌ Upload failed: ${e.message}")
+                    e.printStackTrace()
+                } finally {
+                    isUploading = false
                 }
             }
         }
