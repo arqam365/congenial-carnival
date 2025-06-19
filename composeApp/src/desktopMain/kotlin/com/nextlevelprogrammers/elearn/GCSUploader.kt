@@ -2,6 +2,7 @@ package com.nextlevelprogrammers.elearn
 
 import io.ktor.client.*
 import io.ktor.client.call.*
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
@@ -29,30 +30,44 @@ object GCSUploader {
         val filePath = "videos/uploads"
         val mimeType = "video/mp4"
 
+        println("🔍 Preparing to upload file:")
+        println("  ➤ File name      : $fileName")
+        println("  ➤ File path      : $filePath")
+        println("  ➤ MIME type      : $mimeType")
+        println("  ➤ File size (MB) : ${file.length() / (1024.0 * 1024.0)}")
+
         val signedUrl = getSignedUploadUrl(fileName, filePath, mimeType)
-        val success = uploadFileToSignedUrl(file, signedUrl, contentType = mimeType)
+        println("✅ Signed URL obtained:\n$signedUrl")
+
+        val success = uploadFileResumable(file, signedUrl, contentType = mimeType)
 
         if (!success) throw Exception("Upload failed")
-        return "https://storage.googleapis.com/orchid-prod-data/$filePath/$fileName"
+        val publicUrl = "https://storage.googleapis.com/orchid-prod-data/$filePath/$fileName"
+        println("✅ Final GCS File URL (after successful upload): $publicUrl")
+        return publicUrl
     }
 
     private suspend fun getSignedUploadUrl(fileName: String, filePath: String, fileMimeType: String): String {
         val token = getAccessToken()
 
+        println("📡 Requesting signed URL from backend...")
         val response: HttpResponse = client.get("$BASE_URL/gcloud_storage") {
             parameter("file_name", fileName)
             parameter("file_path", filePath)
-            parameter("file_mime_type", "video/mp4") // ✅ Add this line dynamically based on file
+            parameter("file_mime_type", fileMimeType)
             header(HttpHeaders.Authorization, "Bearer $token")
         }
 
-        val rawBody = response.bodyAsText().trim()
+        val statusCode = response.status
         val contentType = response.headers[HttpHeaders.ContentType] ?: "unknown"
+        val rawBody = response.bodyAsText().trim()
 
-        // If response is a raw URL string, just return it
-        if (rawBody.startsWith("http")) {
-            return rawBody
-        }
+        println("📩 Signed URL Response:")
+        println("  ➤ Status     : $statusCode")
+        println("  ➤ MIME Type  : $contentType")
+        println("  ➤ Raw Body   : $rawBody")
+
+        if (rawBody.startsWith("http")) return rawBody
 
         return try {
             val json = JSONObject(rawBody)
@@ -62,22 +77,45 @@ object GCSUploader {
         }
     }
 
-    private suspend fun uploadFileToSignedUrl(file: File, signedUrl: String, contentType: String): Boolean {
-        val uploadClient = HttpClient()
-        try {
-            val response: HttpResponse = uploadClient.put(signedUrl) {
+    private suspend fun uploadFileResumable(file: File, signedUrl: String, contentType: String): Boolean {
+        val uploadClient = HttpClient {
+            install(HttpTimeout) {
+                requestTimeoutMillis = 300_000
+                connectTimeoutMillis = 60_000
+                socketTimeoutMillis = 300_000
+            }
+        }
+
+        return try {
+            println("📤 Step 1: Initiating resumable session...")
+            val initiateResponse: HttpResponse = uploadClient.post(signedUrl) {
                 header(HttpHeaders.ContentType, contentType)
                 header("x-goog-resumable", "start")
+            }
+
+            val sessionUrl = initiateResponse.headers["Location"]
+            if (sessionUrl.isNullOrBlank()) {
+                println("❌ No resumable session URL returned.")
+                return false
+            }
+
+            println("✅ Resumable session URL: $sessionUrl")
+            println("📤 Step 2: Uploading file...")
+
+            val uploadResponse: HttpResponse = uploadClient.put(sessionUrl) {
+                header(HttpHeaders.ContentType, contentType)
                 setBody(file.readBytes())
             }
 
-            println("Upload Status: ${response.status}")
-            println("Upload Response: ${response.bodyAsText()}")
+            println("📥 Upload Response:")
+            println("  ➤ Status Code : ${uploadResponse.status.value}")
+            println("  ➤ Body        : ${uploadResponse.bodyAsText()}")
 
-            return response.status.value in 200..299
+            uploadResponse.status.value in 200..299
         } catch (e: Exception) {
-            println("Upload exception: ${e.message}")
-            return false
+            println("❌ Upload exception: ${e.message}")
+            e.printStackTrace()
+            false
         }
     }
 
