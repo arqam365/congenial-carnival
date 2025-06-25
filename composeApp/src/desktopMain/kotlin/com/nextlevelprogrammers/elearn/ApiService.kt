@@ -4,12 +4,14 @@ import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.int
+import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
 object ApiService {
@@ -134,5 +136,40 @@ object ApiService {
             ?: throw IllegalStateException("❌ Signed URL not found in response")
     }
 
+    suspend fun uploadContent(
+        courseId: String,
+        sectionId: String,
+        request: ContentUploadRequest
+    ): String {
+        val response = client.post("$BASE_URL/course/$courseId/section/$sectionId/content") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }
+
+        val rawJson = response.bodyAsText()
+        println("📦 Raw Response: $rawJson")
+
+        return try {
+            val jsonElement = Json.parseToJsonElement(rawJson)
+
+            // If API returned an error
+            if (jsonElement.jsonObject.containsKey("error")) {
+                val errorMessage = jsonElement.jsonObject["error"]?.jsonPrimitive?.content
+                println("❌ API Error: $errorMessage")
+                throw Exception(errorMessage)
+            }
+
+            // Else, parse as success response
+            val parsed = Json.decodeFromString<ContentUploadResponse>(rawJson)
+            println("✅ Upload Success: ${parsed.message}")
+            parsed.message
+
+        } catch (e: Exception) {
+            println("❌ Failed to upload content: ${e.localizedMessage}")
+            println("❌ Full Response: $rawJson")
+            e.printStackTrace()
+            throw Exception("Unexpected API response: ${e.localizedMessage}")
+        }
+    }
     // Add more API functions as needed...
 }

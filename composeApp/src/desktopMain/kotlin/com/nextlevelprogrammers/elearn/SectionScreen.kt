@@ -31,6 +31,7 @@ fun SectionScreen(courseId: String, onBack: () -> Unit) {
     var sections by remember { mutableStateOf<List<Section>>(emptyList()) }
     var showAddContentDialog by remember { mutableStateOf(false) }
     var selectedSectionIdForContent by remember { mutableStateOf<String?>(null) }
+    var expectedContentIndex by remember { mutableStateOf(1) }
 
     LaunchedEffect(courseId) {
         println("📦 Fetching course details for ID: $courseId")
@@ -140,8 +141,8 @@ fun SectionScreen(courseId: String, onBack: () -> Unit) {
                             Button(
                                 onClick = {
                                     println("➕ Add Content for Section: ${section.section_id}")
-                                    // TODO: Open add content dialog or screen
                                     selectedSectionIdForContent = section.section_id
+                                    expectedContentIndex = (sectionDetailsMap[section.section_id]?.contents?.size ?: 0) + 1
                                     showAddContentDialog = true
                                 },
                                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB))
@@ -173,6 +174,7 @@ fun SectionScreen(courseId: String, onBack: () -> Unit) {
 
             if (showAddContentDialog && selectedSectionIdForContent != null) {
                 AddContentDialog(
+                    courseId = course!!.course_id,
                     sectionId = selectedSectionIdForContent!!,
                     onClose = { showAddContentDialog = false },
                     onSuccess = {
@@ -218,7 +220,7 @@ fun SectionScreen(courseId: String, onBack: () -> Unit) {
 
 
 @Composable
-fun AddContentDialog(sectionId: String, onClose: () -> Unit, onSuccess: suspend () -> Unit) {
+fun AddContentDialog(courseId: String, sectionId: String, onClose: () -> Unit, onSuccess: suspend () -> Unit) {
     val contentTypes = listOf("video", "pdf", "live_video")
     var selectedContentType by remember { mutableStateOf(contentTypes[0]) }
     var expanded by remember { mutableStateOf(false) }
@@ -227,6 +229,14 @@ fun AddContentDialog(sectionId: String, onClose: () -> Unit, onSuccess: suspend 
     var isLoading by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     var liveUrl by remember { mutableStateOf("") }
+    var sdVideoUrl by remember { mutableStateOf("") }
+    var hdVideoUrl by remember { mutableStateOf("") }
+    var fullHdVideoUrl by remember { mutableStateOf("") }
+    var gsSdVideoUrl by remember { mutableStateOf("") }
+    var gsHdVideoUrl by remember { mutableStateOf("") }
+    var gsFullHdVideoUrl by remember { mutableStateOf("") }
+    var pdfUrl by remember { mutableStateOf("") }
+    var gsPdfUrl by remember { mutableStateOf("") }
 
     AlertDialog(
         onDismissRequest = onClose,
@@ -257,19 +267,28 @@ fun AddContentDialog(sectionId: String, onClose: () -> Unit, onSuccess: suspend 
                     Text("SD Video")
                     FilePickerFieldWithUpload(
                         label = "Choose SD File",
-                        onUploadComplete = { url -> println("🔗 SD Video URL: $url") }
+                        onUploadComplete = { url ->
+                            sdVideoUrl = url
+                            gsSdVideoUrl = url.replace("https://storage.googleapis.com/", "gs://")
+                        }
                     )
 
                     Text("HD Video")
                     FilePickerFieldWithUpload(
                         label = "Choose HD File",
-                        onUploadComplete = { url -> println("🔗 HD Video URL: $url") }
+                        onUploadComplete = { url ->
+                            hdVideoUrl = url
+                            gsHdVideoUrl = url.replace("https://storage.googleapis.com/", "gs://")
+                        }
                     )
 
                     Text("Full HD Video")
                     FilePickerFieldWithUpload(
                         label = "Choose Full HD File",
-                        onUploadComplete = { url -> println("🔗 Full HD Video URL: $url") }
+                        onUploadComplete = { url ->
+                            fullHdVideoUrl = url
+                            gsFullHdVideoUrl = url.replace("https://storage.googleapis.com/", "gs://")
+                        }
                     )
                 } else if (selectedContentType == "pdf") {
                     Text("Upload PDF")
@@ -287,12 +306,72 @@ fun AddContentDialog(sectionId: String, onClose: () -> Unit, onSuccess: suspend 
         confirmButton = {
             Button(onClick = {
                 scope.launch {
-                    // API call to add content can go here
-                    onSuccess()
-                    onClose()
+                    isLoading = true
+
+                    // ✅ Validate URLs before API call
+                    if (selectedContentType == "video") {
+                        if (sdVideoUrl.isBlank() || !sdVideoUrl.startsWith("http")) {
+                            println("❌ Invalid SD Video URL: $sdVideoUrl")
+                            isLoading = false
+                            return@launch
+                        }
+                        if (hdVideoUrl.isBlank() || !hdVideoUrl.startsWith("http")) {
+                            println("❌ Invalid HD Video URL: $hdVideoUrl")
+                            isLoading = false
+                            return@launch
+                        }
+                        if (fullHdVideoUrl.isBlank() || !fullHdVideoUrl.startsWith("http")) {
+                            println("❌ Invalid Full HD Video URL: $fullHdVideoUrl")
+                            isLoading = false
+                            return@launch
+                        }
+                    }
+
+                    if (selectedContentType == "pdf") {
+                        if (pdfUrl.isBlank() || !pdfUrl.startsWith("http")) {
+                            println("❌ Invalid PDF URL: $pdfUrl")
+                            isLoading = false
+                            return@launch
+                        }
+                    }
+
+                    if (selectedContentType == "live_video") {
+                        if (liveUrl.isBlank()) {
+                            println("❌ Live Video ID cannot be empty")
+                            isLoading = false
+                            return@launch
+                        }
+                    }
+
+                    try {
+                        val request = ContentUploadRequest(
+                            content_type = selectedContentType,
+                            content_name = contentName,
+                            content_description = contentDescription,
+                            sd_video_uri = sdVideoUrl,
+                            hd_video_uri = hdVideoUrl,
+                            full_hd_video_uri = fullHdVideoUrl,
+                            sd_video_gs_bucket_uri = gsSdVideoUrl,
+                            hd_video_gs_bucket_uri = gsHdVideoUrl,
+                            full_hd_video_gs_bucket_uri = gsFullHdVideoUrl,
+                            pdf_uri = if (selectedContentType == "pdf") pdfUrl else null,
+                            pdf_gs_bucket_uri = if (selectedContentType == "pdf") gsPdfUrl else null,
+                            live_video_id = if (selectedContentType == "live_video") liveUrl else null,
+                            is_published = true // ✅ Include if required by API
+                        )
+                        println("📦 Final API Request Payload: $request")
+                        ApiService.uploadContent(courseId, sectionId, request)
+                        println("📦 Final API Request Payload: $request")
+                        onSuccess()
+                        onClose()
+                    } catch (e: Exception) {
+                        println("❌ Failed to upload content: ${e.localizedMessage}")
+                    } finally {
+                        isLoading = false
+                    }
                 }
             }) {
-                Text("Add Content")
+                Text(if (isLoading) "Uploading..." else "Add Content")
             }
         },
         dismissButton = {

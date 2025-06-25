@@ -12,6 +12,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.io.File
 import org.json.JSONObject
+import java.net.URLEncoder
 
 object GCSUploader {
     private const val BASE_URL = "https://production-begonia-orchid-977741295366.asia-south1.run.app/v1"
@@ -42,7 +43,8 @@ object GCSUploader {
         val success = uploadFileResumable(file, signedUrl, contentType = mimeType)
 
         if (!success) throw Exception("Upload failed")
-        val publicUrl = "https://storage.googleapis.com/orchid-prod-data/$filePath/$fileName"
+        val encodedFileName = URLEncoder.encode(fileName, "UTF-8").replace("+", "%20")
+        val publicUrl = "https://storage.googleapis.com/orchid-prod-data/$filePath/$encodedFileName"
         println("✅ Final GCS File URL (after successful upload): $publicUrl")
         return publicUrl
     }
