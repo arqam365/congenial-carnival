@@ -7,6 +7,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.libraries.mpfilepicker.FilePicker
+import io.ktor.client.utils.EmptyContent.contentType
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -45,7 +46,7 @@ fun VideoUploadScreen(authToken: String) {
                     coroutineScope.launch {
                         try {
                             println("🔄 Upload in progress...")
-                            val resultUrl = GCSUploader.testVideoUpload(File(path))
+                            val resultUrl = GCSUploader.testVideoUpload(File(path), contentType = "video")
                             uploadUrl = resultUrl
                             println("✅ Uploaded to: $resultUrl")
                         } catch (e: Exception) {

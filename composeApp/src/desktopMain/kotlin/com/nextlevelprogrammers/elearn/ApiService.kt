@@ -171,5 +171,79 @@ object ApiService {
             throw Exception("Unexpected API response: ${e.localizedMessage}")
         }
     }
+
+
+    suspend fun uploadLiveContent(
+        courseId: String,
+        sectionId: String,
+        request: ContentLiveRequest
+    ): String {
+        val response = client.post("$BASE_URL/course/$courseId/section/$sectionId/content") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }
+
+        val rawJson = response.bodyAsText()
+        println("📦 Raw Response: $rawJson")
+
+        return try {
+            val jsonElement = Json.parseToJsonElement(rawJson)
+
+            // If API returned an error
+            if (jsonElement.jsonObject.containsKey("error")) {
+                val errorMessage = jsonElement.jsonObject["error"]?.jsonPrimitive?.content
+                println("❌ API Error: $errorMessage")
+                throw Exception(errorMessage)
+            }
+
+            // Else, parse as success response
+            val parsed = Json.decodeFromString<ContentUploadResponse>(rawJson)
+            println("✅ Upload Success: ${parsed.message}")
+            parsed.message
+
+        } catch (e: Exception) {
+            println("❌ Failed to upload content: ${e.localizedMessage}")
+            println("❌ Full Response: $rawJson")
+            e.printStackTrace()
+            throw Exception("Unexpected API response: ${e.localizedMessage}")
+        }
+    }
+
+
+    suspend fun uploadPdfContent(
+        courseId: String,
+        sectionId: String,
+        request: ContentPdfRequest
+    ): String {
+        val response = client.post("$BASE_URL/course/$courseId/section/$sectionId/content") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }
+
+        val rawJson = response.bodyAsText()
+        println("📦 Raw Response: $rawJson")
+
+        return try {
+            val jsonElement = Json.parseToJsonElement(rawJson)
+
+            // If API returned an error
+            if (jsonElement.jsonObject.containsKey("error")) {
+                val errorMessage = jsonElement.jsonObject["error"]?.jsonPrimitive?.content
+                println("❌ API Error: $errorMessage")
+                throw Exception(errorMessage)
+            }
+
+            // Else, parse as success response
+            val parsed = Json.decodeFromString<ContentUploadResponse>(rawJson)
+            println("✅ Upload Success: ${parsed.message}")
+            parsed.message
+
+        } catch (e: Exception) {
+            println("❌ Failed to upload content: ${e.localizedMessage}")
+            println("❌ Full Response: $rawJson")
+            e.printStackTrace()
+            throw Exception("Unexpected API response: ${e.localizedMessage}")
+        }
+    }
     // Add more API functions as needed...
 }

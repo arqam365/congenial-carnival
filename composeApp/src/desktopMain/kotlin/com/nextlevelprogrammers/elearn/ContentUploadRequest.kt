@@ -18,3 +18,23 @@ data class ContentUploadRequest(
     val live_video_id: String? = null,
     val is_published: Boolean = true
 )
+
+@Serializable
+data class ContentLiveRequest(
+    val content_type: String,
+    val content_name: String,
+    val content_description: String,
+    val live_video_id: String? = null,
+    val is_published: Boolean = true
+)
+
+
+@Serializable
+data class ContentPdfRequest(
+    val content_type: String,
+    val content_name: String,
+    val content_description: String,
+    val pdf_uri: String? = null,
+    val pdf_gs_bucket_uri: String? = null,
+    val is_published: Boolean = true
+)

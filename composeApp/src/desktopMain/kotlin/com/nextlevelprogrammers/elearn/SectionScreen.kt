@@ -267,6 +267,7 @@ fun AddContentDialog(courseId: String, sectionId: String, onClose: () -> Unit, o
                     Text("SD Video")
                     FilePickerFieldWithUpload(
                         label = "Choose SD File",
+                        contentType = "video",
                         onUploadComplete = { url ->
                             sdVideoUrl = url
                             gsSdVideoUrl = url.replace("https://storage.googleapis.com/", "gs://")
@@ -276,6 +277,7 @@ fun AddContentDialog(courseId: String, sectionId: String, onClose: () -> Unit, o
                     Text("HD Video")
                     FilePickerFieldWithUpload(
                         label = "Choose HD File",
+                        contentType = "video",
                         onUploadComplete = { url ->
                             hdVideoUrl = url
                             gsHdVideoUrl = url.replace("https://storage.googleapis.com/", "gs://")
@@ -285,6 +287,7 @@ fun AddContentDialog(courseId: String, sectionId: String, onClose: () -> Unit, o
                     Text("Full HD Video")
                     FilePickerFieldWithUpload(
                         label = "Choose Full HD File",
+                        contentType = "video",
                         onUploadComplete = { url ->
                             fullHdVideoUrl = url
                             gsFullHdVideoUrl = url.replace("https://storage.googleapis.com/", "gs://")
@@ -292,7 +295,14 @@ fun AddContentDialog(courseId: String, sectionId: String, onClose: () -> Unit, o
                     )
                 } else if (selectedContentType == "pdf") {
                     Text("Upload PDF")
-//                    FilePickerField(label = "Choose File")
+                    FilePickerFieldWithUpload(
+                        label = "Choose PDF File",
+                        contentType = "pdf",
+                        onUploadComplete = { url ->
+                            pdfUrl = url
+                            gsPdfUrl = url.replace("https://storage.googleapis.com/", "gs://")
+                        }
+                    )
                 } else if (selectedContentType == "live_video") {
                     OutlinedTextField(
                         value = liveUrl,
@@ -343,31 +353,74 @@ fun AddContentDialog(courseId: String, sectionId: String, onClose: () -> Unit, o
                         }
                     }
 
-                    try {
-                        val request = ContentUploadRequest(
-                            content_type = selectedContentType,
-                            content_name = contentName,
-                            content_description = contentDescription,
-                            sd_video_uri = sdVideoUrl,
-                            hd_video_uri = hdVideoUrl,
-                            full_hd_video_uri = fullHdVideoUrl,
-                            sd_video_gs_bucket_uri = gsSdVideoUrl,
-                            hd_video_gs_bucket_uri = gsHdVideoUrl,
-                            full_hd_video_gs_bucket_uri = gsFullHdVideoUrl,
-                            pdf_uri = if (selectedContentType == "pdf") pdfUrl else null,
-                            pdf_gs_bucket_uri = if (selectedContentType == "pdf") gsPdfUrl else null,
-                            live_video_id = if (selectedContentType == "live_video") liveUrl else null,
-                            is_published = true // ✅ Include if required by API
-                        )
-                        println("📦 Final API Request Payload: $request")
-                        ApiService.uploadContent(courseId, sectionId, request)
-                        println("📦 Final API Request Payload: $request")
-                        onSuccess()
-                        onClose()
-                    } catch (e: Exception) {
-                        println("❌ Failed to upload content: ${e.localizedMessage}")
-                    } finally {
-                        isLoading = false
+                    if (selectedContentType == "live_video") {
+                        try {
+                            val request = ContentLiveRequest(
+                                content_type = selectedContentType,
+                                content_name = contentName,
+                                content_description = contentDescription,
+                                live_video_id = if (selectedContentType == "live_video") liveUrl else null,
+                                is_published = true // ✅ Include if required by API
+                            )
+                            println("📦 Final API Request Payload: $request")
+                            ApiService.uploadLiveContent(courseId, sectionId, request)
+                            println("📦 Final API Request Payload: $request")
+                            onSuccess()
+                            onClose()
+                        } catch (e: Exception) {
+                            println("❌ Failed to upload content: ${e.localizedMessage}")
+                        } finally {
+                            isLoading = false
+                        }
+                    }
+                    if (selectedContentType == "pdf") {
+                        try {
+                            val request = ContentPdfRequest(
+                                content_type = selectedContentType,
+                                content_name = contentName,
+                                content_description = contentDescription,
+                                pdf_uri = if (selectedContentType == "pdf") pdfUrl else null,
+                                pdf_gs_bucket_uri = if (selectedContentType == "pdf") gsPdfUrl else null, // ✅ Add this line
+                                is_published = true
+                            )
+                            println("📦 Final API Request Payload: $request")
+                            ApiService.uploadPdfContent(courseId, sectionId, request)
+                            println("📦 Final API Request Payload: $request")
+                            onSuccess()
+                            onClose()
+                        } catch (e: Exception) {
+                            println("❌ Failed to upload content: ${e.localizedMessage}")
+                        } finally {
+                            isLoading = false
+                        }
+                    }
+                    else {
+                        try {
+                            val request = ContentUploadRequest(
+                                content_type = selectedContentType,
+                                content_name = contentName,
+                                content_description = contentDescription,
+                                sd_video_uri = sdVideoUrl,
+                                hd_video_uri = hdVideoUrl,
+                                full_hd_video_uri = fullHdVideoUrl,
+                                sd_video_gs_bucket_uri = gsSdVideoUrl,
+                                hd_video_gs_bucket_uri = gsHdVideoUrl,
+                                full_hd_video_gs_bucket_uri = gsFullHdVideoUrl,
+                                pdf_uri = if (selectedContentType == "pdf") pdfUrl else null,
+                                pdf_gs_bucket_uri = if (selectedContentType == "pdf") gsPdfUrl else null,
+                                live_video_id = if (selectedContentType == "live_video") liveUrl else null,
+                                is_published = true // ✅ Include if required by API
+                            )
+                            println("📦 Final API Request Payload: $request")
+                            ApiService.uploadContent(courseId, sectionId, request)
+                            println("📦 Final API Request Payload: $request")
+                            onSuccess()
+                            onClose()
+                        } catch (e: Exception) {
+                            println("❌ Failed to upload content: ${e.localizedMessage}")
+                        } finally {
+                            isLoading = false
+                        }
                     }
                 }
             }) {
@@ -430,6 +483,7 @@ fun ContentTypeDropdown(
 fun FilePickerFieldWithUpload(
     label: String,
     allowedExtensions: List<String> = listOf("mp4", "mov", "avi", "mkv", "pdf"),
+    contentType: String,
     onUploadComplete: (String) -> Unit
 ) {
     var showFilePicker by remember { mutableStateOf(false) }
@@ -472,7 +526,7 @@ fun FilePickerFieldWithUpload(
             isUploading = true
             scope.launch {
                 try {
-                    val resultUrl = GCSUploader.testVideoUpload(file)
+                    val resultUrl = GCSUploader.testVideoUpload(file, contentType)
                     uploadedUrl = resultUrl
                     onUploadComplete(resultUrl)
                 } catch (e: Exception) {

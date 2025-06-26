@@ -26,10 +26,15 @@ object GCSUploader {
     @Serializable
     data class SignedUrlResponse(val url: String)
 
-    suspend fun testVideoUpload(file: File): String {
+    suspend fun testVideoUpload(file: File, contentType: String): String {
         val fileName = file.name
-        val filePath = "videos/uploads"
-        val mimeType = "video/mp4"
+        val filePath = when (contentType) {
+            "video" -> "videos/uploads"
+            "pdf" -> "pdf/uploads"
+            else -> throw IllegalArgumentException("Unsupported content type: $contentType")
+        }
+
+        val mimeType = if (contentType == "pdf") "application/pdf" else "video/mp4"
 
         println("🔍 Preparing to upload file:")
         println("  ➤ File name      : $fileName")
