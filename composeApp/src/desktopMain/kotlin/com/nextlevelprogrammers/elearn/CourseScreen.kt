@@ -148,7 +148,6 @@ fun CourseTable(courses: List<CourseDto>, onCourseClick: (CourseDto) -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .background(Color.White)
-            .verticalScroll(rememberScrollState())
     ) {
         // Header
         Row(
