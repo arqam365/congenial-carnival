@@ -2,8 +2,11 @@ package com.nextlevelprogrammers.elearn
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
@@ -13,6 +16,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
@@ -28,18 +32,24 @@ fun DashboardScreen(onCategoryClick: () -> Unit,
         modifier = Modifier
             .fillMaxSize()
             .padding(24.dp)
+            .verticalScroll(rememberScrollState())
     ) {
-        Text("Welcome to Dashboard", style = MaterialTheme.typography.headlineMedium)
+        Row(modifier=Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween) {
+            Text("Welcome to Dashboard", style = MaterialTheme.typography.headlineMedium)
+
+            Button(onClick = onLogout) {
+                Text("Logout")
+            }}
         Spacer(modifier = Modifier.height(24.dp))
 
-        Button(onClick = onLogout) {
-            Text("Logout")
-        }
 
         Column(
+            modifier = Modifier.padding(vertical = 16.dp).weight(1f),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            Row(modifier = Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 DashboardCard(
                     title = "Course Management",
                     description = "Learn to use HeroUI for amazing UI components.",
@@ -55,7 +65,7 @@ fun DashboardScreen(onCategoryClick: () -> Unit,
                     onClick = onCategoryClick
                 )
             }
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            Row(modifier = Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 DashboardCard(
                     title = "Razorpay",
                     description = "View your Razorpay dashboard & payments.",
@@ -83,7 +93,6 @@ fun DashboardCard(
 ) {
     Box(
         modifier = modifier
-            .aspectRatio(2f)
             .clip(RoundedCornerShape(16.dp))
             .background(Brush.linearGradient(gradientColors))
             .clickable { onClick() }

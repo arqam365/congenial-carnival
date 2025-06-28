@@ -3,7 +3,9 @@ package com.nextlevelprogrammers.elearn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -54,7 +56,7 @@ fun SectionScreen(courseId: String, onBack: () -> Unit) {
     }
 
     Row(Modifier.fillMaxSize().padding(24.dp)) {
-        Column(Modifier.weight(2f).padding(end = 16.dp)) {
+        Column(Modifier.weight(2f).padding(end = 16.dp).verticalScroll(rememberScrollState())) {
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Button(onClick = onBack, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB))) {
@@ -83,7 +85,7 @@ fun SectionScreen(courseId: String, onBack: () -> Unit) {
             Text(course!!.course_description)
 
             Spacer(Modifier.height(24.dp))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text("Course Content", fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
                 Row {
                     Button(onClick = { showAddSectionDialog = true }) { Text("Add Section") }
@@ -93,6 +95,7 @@ fun SectionScreen(courseId: String, onBack: () -> Unit) {
                     }
                 }
             }
+            Spacer(Modifier.height(24.dp))
 
             // Section Accordion
             sections.forEachIndexed { index, section ->

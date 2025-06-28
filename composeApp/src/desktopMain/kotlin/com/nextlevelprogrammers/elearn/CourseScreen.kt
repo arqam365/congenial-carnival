@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -147,6 +148,7 @@ fun CourseTable(courses: List<CourseDto>, onCourseClick: (CourseDto) -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .background(Color.White)
+            .verticalScroll(rememberScrollState())
     ) {
         // Header
         Row(
@@ -239,7 +241,8 @@ fun AddCourseDialog(
         onDismissRequest = onClose,
         title = { Text("Add New Course") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(modifier=Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Course Name") })
                 OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("Description") })
 
@@ -257,9 +260,9 @@ fun AddCourseDialog(
                 OutlinedTextField(value = expiresAt, onValueChange = { expiresAt = it }, label = { Text("Expiry Date (optional)") })
                 OutlinedTextField(value = headImg, onValueChange = { headImg = it }, label = { Text("Head Image URL") })
 
-                Row { Checkbox(checked = allowFreeAccess, onCheckedChange = { allowFreeAccess = it }); Text("Allow Free Access") }
-                Row { Checkbox(checked = canBePurchased, onCheckedChange = { canBePurchased = it }); Text("Can be Purchased") }
-                Row { Checkbox(checked = isPublished, onCheckedChange = { isPublished = it }); Text("Publish Course") }
+                Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(checked = allowFreeAccess, onCheckedChange = { allowFreeAccess = it }); Text("Allow Free Access") }
+                Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(checked = canBePurchased, onCheckedChange = { canBePurchased = it }); Text("Can be Purchased") }
+                Row (verticalAlignment = Alignment.CenterVertically){ Checkbox(checked = isPublished, onCheckedChange = { isPublished = it }); Text("Publish Course") }
             }
         },
         confirmButton = {
@@ -352,12 +355,13 @@ fun SearchBar(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color(0xFFF5F5F5), shape = MaterialTheme.shapes.medium)
-            .padding(12.dp),
+            .background(Color(0xFFF5F5F5), shape = RoundedCornerShape(25))
+            .padding( 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         OutlinedTextField(
             value = searchQuery,
+            shape = RoundedCornerShape(25),
             onValueChange = onSearchChange,
             singleLine = true,
             modifier = Modifier
