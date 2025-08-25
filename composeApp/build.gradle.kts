@@ -32,6 +32,7 @@ kotlin {
             implementation("io.github.sunildhiman90:kmauth-google-compose:0.0.4")
             implementation("com.google.auth:google-auth-library-oauth2-http:1.21.0")
             implementation("com.kizitonwose.calendar:compose-multiplatform:2.7.0")
+            implementation("dev.gitlive:firebase-auth:2.3.0")
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -64,6 +65,7 @@ kotlin {
             implementation("com.squareup.okhttp3:okhttp:4.12.0")
             implementation("com.google.code.gson:gson:2.10.1")
             implementation("org.json:json:20231013")
+            implementation("dev.gitlive:firebase-app-jvm:2.3.0")
         }
     }
 }

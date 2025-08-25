@@ -13,6 +13,7 @@ fun main() = application {
     KMAuthInitializer.init(
         webClientId = "977741295366-h88ufv9vncvut78opgfb3qpdogkhd9v9.apps.googleusercontent.com"
     )
+    initFirebaseDesktop()
 
     Window(
         onCloseRequest = ::exitApplication,
