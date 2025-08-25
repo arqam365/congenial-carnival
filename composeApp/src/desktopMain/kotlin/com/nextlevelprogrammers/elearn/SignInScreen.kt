@@ -7,7 +7,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
-import com.sunildhiman90.kmauth.google.compose.GoogleSignInButton
+//import com.sunildhiman90.kmauth.google.compose.GoogleSignInButton
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
 import kotlinx.coroutines.launch
@@ -142,21 +142,21 @@ fun SignInScreen(onSignedIn: (String) -> Unit) {
         Spacer(Modifier.height(12.dp))
 
         // Keep your Google button
-        GoogleSignInButton(modifier = Modifier.fillMaxWidth()) { user, error ->
-            if (error != null) {
-                errorMessage = error.message
-                return@GoogleSignInButton
-            }
-            if (user != null) {
-                val idToken = user.idToken
-                if (idToken == null) {
-                    errorMessage = "Missing Google ID token"
-                    return@GoogleSignInButton
-                }
-                TokenStorage.saveToken(idToken)
-                onSignedIn(idToken)
-            }
-        }
+//        GoogleSignInButton(modifier = Modifier.fillMaxWidth()) { user, error ->
+//            if (error != null) {
+//                errorMessage = error.message
+//                return@GoogleSignInButton
+//            }
+//            if (user != null) {
+//                val idToken = user.idToken
+//                if (idToken == null) {
+//                    errorMessage = "Missing Google ID token"
+//                    return@GoogleSignInButton
+//                }
+//                TokenStorage.saveToken(idToken)
+//                onSignedIn(idToken)
+//            }
+//        }
 
         errorMessage?.let {
             Spacer(Modifier.height(12.dp))

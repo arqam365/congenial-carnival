@@ -28,8 +28,8 @@ kotlin {
             implementation("io.ktor:ktor-client-content-negotiation:3.0.1")
             implementation("io.ktor:ktor-serialization-kotlinx-json:3.0.1")
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
-            implementation("io.github.sunildhiman90:kmauth-google:0.0.4")
-            implementation("io.github.sunildhiman90:kmauth-google-compose:0.0.4")
+//            implementation("io.github.sunildhiman90:kmauth-google:0.0.4")
+//            implementation("io.github.sunildhiman90:kmauth-google-compose:0.0.4")
             implementation("com.google.auth:google-auth-library-oauth2-http:1.21.0")
             implementation("com.kizitonwose.calendar:compose-multiplatform:2.7.0")
             implementation("dev.gitlive:firebase-auth:2.3.0")
@@ -58,8 +58,8 @@ kotlin {
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.10.2")
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:1.10.2")
-            implementation("io.github.sunildhiman90:kmauth-google:0.0.4")
-            implementation("io.github.sunildhiman90:kmauth-google-compose:0.0.4")
+//            implementation("io.github.sunildhiman90:kmauth-google:0.0.4")
+//            implementation("io.github.sunildhiman90:kmauth-google-compose:0.0.4")
             implementation("com.google.auth:google-auth-library-oauth2-http:1.21.0")
             implementation("com.google.auth:google-auth-library-oauth2-http:1.19.0")
             implementation("com.squareup.okhttp3:okhttp:4.12.0")
@@ -78,7 +78,7 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "com.nextlevelprogrammers.elearn"
-            packageVersion = "1.0.0"
+            packageVersion = "1.0.1"
         }
     }
 }
