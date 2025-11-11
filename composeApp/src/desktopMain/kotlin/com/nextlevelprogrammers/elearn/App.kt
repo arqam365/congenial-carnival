@@ -39,5 +39,25 @@ fun App() {
                 }
             }
         }
+
+//        when (val screen = currentScreen) {
+//            is Screen.Dashboard -> DashboardScreen(
+//                onCategoryClick = { currentScreen = Screen.Category },
+//                onCourseClick = { currentScreen = Screen.Course },
+//                onLogout = {
+//                    // For now, just go back to Dashboard instead of clearing token
+//                    currentScreen = Screen.Dashboard
+//                }
+//            )
+//            is Screen.Category -> CategoryScreen(onBack = { currentScreen = Screen.Dashboard })
+//            is Screen.Course -> CourseScreen(
+//                onBack = { currentScreen = Screen.Dashboard },
+//                onCourseClick = { course -> currentScreen = Screen.Section(course.course_id) }
+//            )
+//            is Screen.Section -> SectionScreen(
+//                courseId = screen.courseId,
+//                onBack = { currentScreen = Screen.Course }
+//            )
+//        }
     }
 }
